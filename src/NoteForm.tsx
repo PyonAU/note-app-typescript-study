@@ -1,13 +1,37 @@
-import { useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Form, Stack, Row, Col, Button } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import CreatableReactSelect from 'react-select/creatable';
+import { NoteData, Tag } from './App';
+import { v4 as uuidV4 } from 'uuid';
 
-const NoteForm = () => {
+type NoteFormProps = {
+  onSubmit: (data: NoteData) => void;
+  onAddTag: (tag: Tag) => void;
+  availableTags: Tag[];
+};
+
+const NoteForm = ({ onSubmit, onAddTag, availableTags }: NoteFormProps) => {
+  // State
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
+  const navigate = useNavigate();
+
+  // Ref
   const titleRef = useRef<HTMLInputElement | null>(null);
   const markdownRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    onSubmit({
+      title: titleRef.current!.value,
+      markdown: markdownRef.current!.value,
+      tags: selectedTags,
+    });
+
+    navigate('..');
+  };
   return (
-    <Form>
+    <Form onSubmit={handleSubmit}>
       <Stack gap={4}>
         <Row>
           <Col>
@@ -19,7 +43,27 @@ const NoteForm = () => {
           <Col>
             <Form.Group controlId="tags">
               <Form.Label>Tags</Form.Label>
-              <CreatableReactSelect isMulti />
+              <CreatableReactSelect
+                onCreateOption={(label) => {
+                  const newTag = { id: uuidV4(), label };
+                  onAddTag(newTag);
+                  setSelectedTags((prev) => [...prev, newTag]);
+                }}
+                value={selectedTags.map((tag) => {
+                  return { label: tag.label, value: tag.id };
+                })}
+                options={availableTags.map((tag) => {
+                  return { label: tag.label, value: tag.id };
+                })}
+                onChange={(tags) => {
+                  setSelectedTags(
+                    tags.map((tag) => {
+                      return { label: tag.label, id: tag.value };
+                    })
+                  );
+                }}
+                isMulti
+              />
             </Form.Group>
           </Col>
         </Row>
@@ -45,3 +89,5 @@ const NoteForm = () => {
 export default NoteForm;
 
 // <Link to=".."> to make it go back to one previous page
+// title: titleRef.current!.value - ! means this value is always there because
+// it's required area.
